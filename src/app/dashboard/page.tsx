@@ -4,9 +4,10 @@ import {
     UserCheck,
     UserX,
     AlertCircle,
-    Clock,
     Search
 } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 async function getStats() {
     const total = await prisma.subscriber.count();
@@ -88,7 +89,7 @@ export default async function DashboardPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {subscribers.map((sub) => (
+                                {subscribers.map((sub: any) => (
                                     <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-900">{sub.phone}</td>
                                         <td className="px-6 py-4">
