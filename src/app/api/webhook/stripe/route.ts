@@ -23,36 +23,43 @@ export async function POST(req: Request) {
 
     switch (event.type) {
         case 'checkout.session.completed': {
-            const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+            const subscriptionId = session.subscription as string;
+            if (!subscriptionId) break;
+
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
             const customerId = session.customer as string;
+
+            // Prioritize phone from customer_details, then metadata
             const phone = session.customer_details?.phone || session.metadata?.phone;
 
             if (!phone) {
-                console.error('No phone number found in session');
+                console.error('No phone number found for session:', session.id);
                 break;
             }
+
+            const periodEnd = new Date((subscription as any).current_period_end * 1000);
 
             await prisma.subscriber.upsert({
                 where: { phone },
                 update: {
                     stripeCustomerId: customerId,
-                    stripeSubscriptionId: subscription.id,
-                    status: subscription.status,
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    stripeSubscriptionId: (subscription as any).id,
+                    status: (subscription as any).status,
+                    currentPeriodEnd: periodEnd,
                 },
                 create: {
                     phone,
                     stripeCustomerId: customerId,
-                    stripeSubscriptionId: subscription.id,
-                    status: subscription.status,
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    stripeSubscriptionId: (subscription as any).id,
+                    status: (subscription as any).status,
+                    currentPeriodEnd: periodEnd,
                 },
             });
             break;
         }
 
         case 'customer.subscription.updated': {
-            const subscription = event.data.object as Stripe.Subscription;
+            const subscription = event.data.object as any;
             await prisma.subscriber.update({
                 where: { stripeSubscriptionId: subscription.id },
                 data: {
@@ -64,7 +71,7 @@ export async function POST(req: Request) {
         }
 
         case 'customer.subscription.deleted': {
-            const subscription = event.data.object as Stripe.Subscription;
+            const subscription = event.data.object as any;
             await prisma.subscriber.update({
                 where: { stripeSubscriptionId: subscription.id },
                 data: {
