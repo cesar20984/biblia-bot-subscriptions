@@ -1,9 +1,7 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY is missing');
-}
+const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2026-02-25.clover' as any, // Updated to match expected version
+export const stripe = new Stripe(stripeKey, {
+    apiVersion: '2026-02-25.clover' as any,
 });
