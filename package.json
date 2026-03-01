@@ -10,11 +10,11 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^6.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
-    "prisma": "^7.4.2",
+    "prisma": "^6.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "stripe": "^20.4.0",
