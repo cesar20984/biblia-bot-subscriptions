@@ -1,4 +1,5 @@
 # Sistema de Suscripciones Biblia Bendita
+<!-- Force Redeploy -->
 
 Este sistema gestiona las suscripciones de WhatsApp vinculando pagos de Stripe con números de teléfono.
 
