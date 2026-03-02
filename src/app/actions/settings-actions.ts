@@ -3,13 +3,21 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+// Refactored for better stability
 export async function updateBotNumber(number: string) {
     try {
-        await prisma.botSettings.upsert({
-            where: { id: 1 },
-            update: { botNumber: number },
-            create: { id: 1, botNumber: number, stripePaymentLink: '' },
-        });
+        console.log('Updating bot number to:', number);
+        const exists = await prisma.botSettings.findUnique({ where: { id: 1 } });
+        if (exists) {
+            await prisma.botSettings.update({
+                where: { id: 1 },
+                data: { botNumber: number }
+            });
+        } else {
+            await prisma.botSettings.create({
+                data: { id: 1, botNumber: number, stripePaymentLink: '' }
+            });
+        }
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
@@ -20,11 +28,18 @@ export async function updateBotNumber(number: string) {
 
 export async function updateStripeLink(link: string) {
     try {
-        await prisma.botSettings.upsert({
-            where: { id: 1 },
-            update: { stripePaymentLink: link },
-            create: { id: 1, botNumber: '', stripePaymentLink: link },
-        });
+        console.log('Updating stripe link to:', link);
+        const exists = await prisma.botSettings.findUnique({ where: { id: 1 } });
+        if (exists) {
+            await prisma.botSettings.update({
+                where: { id: 1 },
+                data: { stripePaymentLink: link }
+            });
+        } else {
+            await prisma.botSettings.create({
+                data: { id: 1, botNumber: '', stripePaymentLink: link }
+            });
+        }
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
