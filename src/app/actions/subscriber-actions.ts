@@ -5,6 +5,12 @@ import { revalidatePath } from 'next/cache';
 
 export async function deleteSubscriber(id: string) {
     try {
+        if (id.startsWith('temp-')) {
+            // Si es temporal, no hay registro en Subscriber que borrar
+            revalidatePath('/dashboard');
+            return { success: true };
+        }
+
         await prisma.subscriber.delete({
             where: { id },
         });
@@ -18,8 +24,11 @@ export async function deleteSubscriber(id: string) {
 
 export async function toggleVipStatus(id: string, isVip: boolean) {
     try {
-        if (isVip) {
-            // Quitar VIP: volver a inactivo (o dejarlo como está si tiene Stripe, pero el usuario pidió quitar la insignia)
+        const isTemp = id.startsWith('temp-');
+        const phone = isTemp ? id.replace('temp-', '') : null;
+
+        if (isVip && !isTemp) {
+            // Quitar VIP: volver a inactivo
             await prisma.subscriber.update({
                 where: { id },
                 data: {
@@ -29,14 +38,30 @@ export async function toggleVipStatus(id: string, isVip: boolean) {
             });
         } else {
             // Hacer VIP: status activo y fecha lejana
-            await prisma.subscriber.update({
-                where: { id },
-                data: {
-                    status: 'active',
-                    currentPeriodEnd: new Date('2099-12-31'),
-                    stripeSubscriptionId: null, // Si era de Stripe, al hacerlo VIP manual rompemos el vínculo para que sea puramente manual
-                },
-            });
+            if (isTemp && phone) {
+                await prisma.subscriber.upsert({
+                    where: { phone },
+                    create: {
+                        phone,
+                        status: 'active',
+                        currentPeriodEnd: new Date('2099-12-31'),
+                    },
+                    update: {
+                        status: 'active',
+                        currentPeriodEnd: new Date('2099-12-31'),
+                        stripeSubscriptionId: null,
+                    }
+                });
+            } else {
+                await prisma.subscriber.update({
+                    where: { id },
+                    data: {
+                        status: 'active',
+                        currentPeriodEnd: new Date('2099-12-31'),
+                        stripeSubscriptionId: null,
+                    },
+                });
+            }
         }
         revalidatePath('/dashboard');
         return { success: true };
@@ -49,10 +74,23 @@ export async function toggleVipStatus(id: string, isVip: boolean) {
 export async function updateSubscriberPhone(id: string, newPhone: string) {
     try {
         const cleanPhone = newPhone.replace('+', '');
-        await prisma.subscriber.update({
-            where: { id },
-            data: { phone: cleanPhone },
-        });
+
+        if (id.startsWith('temp-')) {
+            // No podemos actualizar el ID temporal fácilmente aquí sin afectar logs, 
+            // pero podemos crear al suscriptor con el nuevo teléfono
+            const oldPhone = id.replace('temp-', '');
+            await prisma.subscriber.upsert({
+                where: { phone: oldPhone },
+                create: { phone: cleanPhone },
+                update: { phone: cleanPhone }
+            });
+        } else {
+            await prisma.subscriber.update({
+                where: { id },
+                data: { phone: cleanPhone },
+            });
+        }
+
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
@@ -63,13 +101,29 @@ export async function updateSubscriberPhone(id: string, newPhone: string) {
 
 export async function updateSubscriberExpiration(id: string, date: string) {
     try {
-        await prisma.subscriber.update({
-            where: { id },
-            data: {
-                currentPeriodEnd: new Date(date),
-                status: 'active' // Aseguramos que si le cambiamos la fecha, esté activo
-            },
-        });
+        if (id.startsWith('temp-')) {
+            const phone = id.replace('temp-', '');
+            await prisma.subscriber.upsert({
+                where: { phone },
+                create: {
+                    phone,
+                    currentPeriodEnd: new Date(date),
+                    status: 'active'
+                },
+                update: {
+                    currentPeriodEnd: new Date(date),
+                    status: 'active'
+                }
+            });
+        } else {
+            await prisma.subscriber.update({
+                where: { id },
+                data: {
+                    currentPeriodEnd: new Date(date),
+                    status: 'active'
+                },
+            });
+        }
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
