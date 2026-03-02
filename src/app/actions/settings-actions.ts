@@ -3,31 +3,48 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function updateBotNumber(botNumber: string) {
+export async function updateBotNumber(number: string) {
     try {
         await prisma.botSettings.upsert({
             where: { id: 1 },
-            update: { botNumber },
-            create: { id: 1, botNumber },
+            update: { botNumber: number },
+            create: { id: 1, botNumber: number, stripePaymentLink: '' },
         });
         revalidatePath('/dashboard');
-        revalidatePath('/success');
         return { success: true };
     } catch (error) {
         console.error('Error updating bot number:', error);
-        return { success: false, error: 'No se pudo actualizar el número' };
+        return { success: false };
     }
 }
 
-export async function getBotNumber() {
+export async function updateStripeLink(link: string) {
+    try {
+        await prisma.botSettings.upsert({
+            where: { id: 1 },
+            update: { stripePaymentLink: link },
+            create: { id: 1, botNumber: '', stripePaymentLink: link },
+        });
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating stripe link:', error);
+        return { success: false };
+    }
+}
+
+export async function getBotSettings() {
     try {
         const settings = await prisma.botSettings.findUnique({
             where: { id: 1 },
         });
-        return settings?.botNumber || '';
+        return {
+            botNumber: settings?.botNumber || '',
+            stripePaymentLink: settings?.stripePaymentLink || ''
+        };
     } catch (error) {
-        console.error('Error fetching bot number:', error);
-        return '';
+        console.error('Error fetching bot settings:', error);
+        return { botNumber: '', stripePaymentLink: '' };
     }
 }
 
@@ -38,7 +55,6 @@ export async function addManualVip(phone: string) {
             where: { phone: cleanPhone },
             update: {
                 status: 'active',
-                // Seteamos una fecha muy lejana para que siempre sea VIP
                 currentPeriodEnd: new Date('2099-12-31'),
             },
             create: {
@@ -54,4 +70,3 @@ export async function addManualVip(phone: string) {
         return { success: false };
     }
 }
-

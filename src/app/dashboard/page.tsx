@@ -3,7 +3,7 @@ import ResetCountButton from '@/components/ResetCountButton';
 import BotNumberEditor from '@/components/BotNumberEditor';
 import DeleteSubscriberButton from '@/components/DeleteSubscriberButton';
 import SubscriberActions from '@/components/SubscriberActions';
-import { getBotNumber } from '@/app/actions/settings-actions';
+import { getBotSettings } from '@/app/actions/settings-actions';
 import {
     Users,
     UserCheck,
@@ -11,7 +11,8 @@ import {
     Search,
     MessageSquare,
     Star,
-    Edit2
+    Edit2,
+    ShieldCheck
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +44,7 @@ export default async function DashboardPage() {
     const stats = await getStats();
     let subscribers = await getSubscribers();
     const todayLogs = await getMessageLogs();
-    const botNumber = await getBotNumber();
+    const { botNumber, stripePaymentLink } = await getBotSettings();
 
     // Ordenar: VIP Manual -> Premium Stripe -> El resto por fecha
     subscribers = [...subscribers].sort((a: any, b: any) => {
@@ -100,7 +101,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="mb-8">
-                    <BotNumberEditor initialNumber={botNumber} />
+                    <BotNumberEditor initialNumber={botNumber} initialStripeLink={stripePaymentLink} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -35,7 +35,8 @@ model MessageLog {
 }
 
 model BotSettings {
-  id        Int      @id @default(1)
-  botNumber String   @default("")
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(1)
+  botNumber         String   @default("")
+  stripePaymentLink String   @default("")
+  updatedAt         DateTime @updatedAt
 }
