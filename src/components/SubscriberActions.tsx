@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { toggleVipStatus, updateSubscriberPhone, updateSubscriberExpiration } from '@/app/actions/subscriber-actions';
-import { Edit2, Star, Check, X, Loader2, Calendar, ExternalLink } from 'lucide-react';
+import { toggleVipStatus, updateSubscriberPhone, updateSubscriberExpiration, toggleBlockStatus } from '@/app/actions/subscriber-actions';
+import { Edit2, Star, Check, X, Loader2, Calendar, ExternalLink, Ban, ShieldAlert } from 'lucide-react';
 
 interface SubscriberActionsProps {
     subscriber: {
@@ -12,6 +12,7 @@ interface SubscriberActionsProps {
         stripeSubscriptionId: string | null;
         stripeCustomerId: string | null;
         currentPeriodEnd: Date | null;
+        isBlocked?: boolean;
     };
 }
 
@@ -60,6 +61,16 @@ export default function SubscriberActions({ subscriber }: SubscriberActionsProps
             setIsEditingDate(false);
         } else {
             alert('Error al actualizar fecha');
+        }
+        setLoading(false);
+    };
+
+    const handleToggleBlock = async () => {
+        if (!confirm(`¿Estás seguro de que quieres ${subscriber.isBlocked ? 'desbloquear' : 'bloquear'} a este usuario?`)) return;
+        setLoading(true);
+        const res = await toggleBlockStatus(subscriber.id, !!subscriber.isBlocked);
+        if (!res.success) {
+            alert('Error al cambiar estado de bloqueo');
         }
         setLoading(false);
     };
@@ -139,12 +150,25 @@ export default function SubscriberActions({ subscriber }: SubscriberActionsProps
                 onClick={handleToggleVip}
                 disabled={loading}
                 className={`p-1.5 rounded-lg transition-all ${isManualVip
-                        ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
-                        : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'
+                    ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                    : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'
                     }`}
                 title={isManualVip ? "Quitar VIP" : "Hacer VIP"}
             >
                 <Star className={`w-3.5 h-3.5 ${isManualVip ? 'fill-amber-500' : ''}`} />
+            </button>
+
+            {/* Bloquear Usuario */}
+            <button
+                onClick={handleToggleBlock}
+                disabled={loading}
+                className={`p-1.5 rounded-lg transition-all ${subscriber.isBlocked
+                    ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
+                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                    }`}
+                title={subscriber.isBlocked ? "Desbloquear usuario" : "Bloquear usuario"}
+            >
+                {subscriber.isBlocked ? <ShieldAlert className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
             </button>
         </div>
     );

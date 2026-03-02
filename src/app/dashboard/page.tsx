@@ -15,7 +15,8 @@ import {
     ShieldCheck,
     Filter,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Ban
 } from 'lucide-react';
 import DashboardFilters from '@/components/DashboardFilters';
 import { Suspense } from 'react';
@@ -87,7 +88,8 @@ export default async function DashboardPage({
             currentPeriodEnd: sub?.currentPeriodEnd,
             createdAt: sub?.createdAt || new Date(),
             messagesToday: logsMap.get(phone) || 0,
-            isNew: !sub
+            isNew: !sub,
+            isBlocked: sub?.isBlocked || false
         };
     });
 
@@ -195,13 +197,20 @@ export default async function DashboardPage({
                                         {fullList.map((sub: any) => {
                                             const isManualVip = sub.status === 'active' && !sub.stripeSubscriptionId;
                                             const isStripePremium = sub.status === 'active' && sub.stripeSubscriptionId;
+                                            const isBlocked = sub.isBlocked;
 
                                             return (
-                                                <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${isManualVip ? 'bg-amber-50/30' : ''} ${isStripePremium ? 'bg-blue-50/30' : ''}`}>
+                                                <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${isBlocked ? 'bg-rose-50/50 opacity-80' : ''} ${isManualVip ? 'bg-amber-50/30' : ''} ${isStripePremium ? 'bg-blue-50/30' : ''}`}>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="font-medium text-slate-900">{sub.phone}</span>
-                                                            {isManualVip && (
+                                                            <span className={`font-medium ${isBlocked ? 'text-rose-600 line-through' : 'text-slate-900'}`}>{sub.phone}</span>
+                                                            {isBlocked && (
+                                                                <span className="flex items-center gap-1 bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-rose-200 uppercase">
+                                                                    <Ban className="w-2.5 h-2.5" />
+                                                                    Bloqueado
+                                                                </span>
+                                                            )}
+                                                            {isManualVip && !isBlocked && (
                                                                 <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase" title="Añadido manualmente">
                                                                     <Star className="w-2.5 h-2.5 fill-amber-500" />
                                                                     VIP

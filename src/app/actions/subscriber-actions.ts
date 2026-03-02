@@ -131,3 +131,36 @@ export async function updateSubscriberExpiration(id: string, date: string) {
         return { success: false };
     }
 }
+
+export async function toggleBlockStatus(id: string, currentlyBlocked: boolean) {
+    try {
+        const isTemp = id.startsWith('temp-');
+        const phone = isTemp ? id.replace('temp-', '') : null;
+
+        if (isTemp && phone) {
+            // Si es un lead temporal, crearlo como bloqueado
+            await prisma.subscriber.upsert({
+                where: { phone },
+                create: {
+                    phone,
+                    isBlocked: !currentlyBlocked
+                },
+                update: {
+                    isBlocked: !currentlyBlocked
+                }
+            });
+        } else {
+            // Si ya existe en la DB
+            await prisma.subscriber.update({
+                where: { id },
+                data: { isBlocked: !currentlyBlocked }
+            });
+        }
+
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error toggling block status:', error);
+        return { success: false };
+    }
+}

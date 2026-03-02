@@ -27,6 +27,16 @@ export async function GET(request: Request) {
             where: { phone: cleanPhone },
         });
 
+        // BLOQUEO PRIORITARIO
+        if (subscriber?.isBlocked) {
+            return NextResponse.json({
+                active: false,
+                isVip: false,
+                isBlocked: true,
+                message: 'Número bloqueado por el administrador'
+            });
+        }
+
         const isPeriodValid = subscriber?.currentPeriodEnd ? new Date(subscriber.currentPeriodEnd) > now : false;
 
         // El usuario es VIP si tiene estado activo o si canceló pero el periodo no ha vencido
