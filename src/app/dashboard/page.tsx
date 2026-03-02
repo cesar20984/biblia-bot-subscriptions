@@ -43,10 +43,18 @@ export default async function DashboardPage() {
     const todayLogs = await getMessageLogs();
     const botNumber = await getBotNumber();
 
-    // Ordenar: activos (VIP) primero, luego el resto por fecha de creación
+    // Ordenar: VIP Manual -> Premium Stripe -> El resto por fecha
     subscribers = [...subscribers].sort((a: any, b: any) => {
-        if (a.status === 'active' && b.status !== 'active') return -1;
-        if (a.status !== 'active' && b.status === 'active') return 1;
+        const aIsManual = a.status === 'active' && !a.stripeSubscriptionId;
+        const bIsManual = b.status === 'active' && !b.stripeSubscriptionId;
+        const aIsPremium = a.status === 'active' && !!a.stripeSubscriptionId;
+        const bIsPremium = b.status === 'active' && !!b.stripeSubscriptionId;
+
+        if (aIsManual && !bIsManual) return -1;
+        if (!aIsManual && bIsManual) return 1;
+        if (aIsPremium && !bIsPremium) return -1;
+        if (!aIsPremium && bIsPremium) return 1;
+
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
@@ -119,30 +127,41 @@ export default async function DashboardPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {subscribers.map((sub: any) => (
-                                        <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${sub.status === 'active' ? 'bg-blue-50/30' : ''}`}>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-medium text-slate-900">{sub.phone}</span>
-                                                    {sub.status === 'active' && (
-                                                        <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase">
-                                                            <Star className="w-2.5 h-2.5 fill-amber-500" />
-                                                            VIP
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <StatusBadge status={sub.status} />
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-600">
-                                                {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {subscribers.map((sub: any) => {
+                                        const isManualVip = sub.status === 'active' && !sub.stripeSubscriptionId;
+                                        const isStripePremium = sub.status === 'active' && sub.stripeSubscriptionId;
+
+                                        return (
+                                            <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${isManualVip ? 'bg-amber-50/30' : ''} ${isStripePremium ? 'bg-blue-50/30' : ''}`}>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-medium text-slate-900">{sub.phone}</span>
+                                                        {isManualVip && (
+                                                            <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase" title="Añadido manualmente">
+                                                                <Star className="w-2.5 h-2.5 fill-amber-500" />
+                                                                VIP
+                                                            </span>
+                                                        )}
+                                                        {isStripePremium && (
+                                                            <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase" title="Suscripción vía Stripe">
+                                                                <UserCheck className="w-2.5 h-2.5" />
+                                                                Premium
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <StatusBadge status={sub.status} />
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600">
+                                                    {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                     {subscribers.length === 0 && (
                                         <tr>
                                             <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
