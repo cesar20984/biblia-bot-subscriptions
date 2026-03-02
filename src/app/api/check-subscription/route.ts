@@ -15,13 +15,16 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Número de teléfono requerido' }, { status: 400 });
     }
 
+    // Normalizar teléfono: quitar el "+" si viene de n8n o WhatsApp
+    const cleanPhone = phone.replace('+', '');
+
     try {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
         // 1. Buscamos al suscriptor por teléfono
         const subscriber = await prisma.subscriber.findUnique({
-            where: { phone },
+            where: { phone: cleanPhone },
         });
 
         const isPeriodValid = subscriber?.currentPeriodEnd ? new Date(subscriber.currentPeriodEnd) > now : false;
@@ -43,12 +46,12 @@ export async function GET(request: Request) {
         const log = await prisma.messageLog.upsert({
             where: {
                 phone_date: {
-                    phone,
+                    phone: cleanPhone,
                     date: todayStr
                 }
             },
             create: {
-                phone,
+                phone: cleanPhone,
                 date: todayStr,
                 count: 1
             },

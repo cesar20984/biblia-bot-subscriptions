@@ -42,9 +42,9 @@ export async function POST(req: Request) {
                 const customerId = session.customer as string;
 
                 // Prioritize phone from customer_details, then metadata
-                const phone = session.customer_details?.phone || session.metadata?.phone;
+                let rawPhone = session.customer_details?.phone || session.metadata?.phone;
 
-                if (!phone) {
+                if (!rawPhone) {
                     console.error('❌ CRITICAL: No phone number found for session. Ensure "Phone number collection" is enabled in Stripe Payment Link.');
                     console.log('Session Data:', JSON.stringify({
                         id: session.id,
@@ -54,8 +54,18 @@ export async function POST(req: Request) {
                     break;
                 }
 
+                // Sincronizar con n8n: quitar el "+" si existe
+                const phone = rawPhone.replace('+', '');
+
                 console.log(`Saving subscriber for phone: ${phone}`);
-                const periodEnd = new Date((subscription as any).current_period_end * 1000);
+
+                // Asegurarnos de que el periodo final sea una fecha válida
+                const timestamp = (subscription as any).current_period_end;
+                const periodEnd = timestamp ? new Date(timestamp * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días por defecto si falta
+
+                if (isNaN(periodEnd.getTime())) {
+                    console.error('❌ Invalid periodEnd date detected:', timestamp);
+                }
 
                 await prisma.subscriber.upsert({
                     where: { phone },
@@ -63,14 +73,14 @@ export async function POST(req: Request) {
                         stripeCustomerId: customerId,
                         stripeSubscriptionId: (subscription as any).id,
                         status: (subscription as any).status,
-                        currentPeriodEnd: periodEnd,
+                        currentPeriodEnd: isNaN(periodEnd.getTime()) ? null : periodEnd,
                     },
                     create: {
                         phone,
                         stripeCustomerId: customerId,
                         stripeSubscriptionId: (subscription as any).id,
                         status: (subscription as any).status,
-                        currentPeriodEnd: periodEnd,
+                        currentPeriodEnd: isNaN(periodEnd.getTime()) ? null : periodEnd,
                     },
                 });
                 console.log('✅ Subscriber saved successfully');
