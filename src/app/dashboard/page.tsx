@@ -36,7 +36,7 @@ export default async function DashboardPage() {
                         Dashboard de Suscriptores
                         <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Beta</span>
                     </h1>
-                    <p className="text-slate-500">Gestión de suscripciones para biblia-bot</p>
+                    <p className="text-slate-500">Gestión de suscripciones premium para tu bot de la Biblia</p>
                 </header>
 
                 {/* Stats Grid */}
