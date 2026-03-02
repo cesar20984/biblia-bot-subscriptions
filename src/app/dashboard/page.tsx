@@ -64,7 +64,7 @@ export default async function DashboardPage({
     const stats = await getStats();
     let subscribers = await getSubscribers();
     const todayLogs = await getMessageLogs();
-    const { botNumber, stripePaymentLink } = await getBotSettings();
+    const { botNumber, stripePaymentLink, stripeCancelLink } = await getBotSettings();
 
     // Mapear logs para búsqueda rápida
     const logsMap = new Map(todayLogs.map(log => [log.phone, log.count]));
@@ -161,7 +161,11 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mb-8">
-                    <BotNumberEditor initialNumber={botNumber} initialStripeLink={stripePaymentLink} />
+                    <BotNumberEditor
+                        initialNumber={botNumber}
+                        initialStripeLink={stripePaymentLink}
+                        initialStripeCancelLink={stripeCancelLink}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

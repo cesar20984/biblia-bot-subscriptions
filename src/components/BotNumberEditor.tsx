@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { updateBotNumber, updateStripeLink, addManualVip } from '@/app/actions/settings-actions';
-import { Phone, Save, Loader2, ChevronDown, ChevronUp, ShieldCheck, CreditCard } from 'lucide-react';
+import { updateBotNumber, updateStripeLink, updateStripeCancelLink, addManualVip } from '@/app/actions/settings-actions';
+import { Phone, Save, Loader2, ChevronDown, ChevronUp, ShieldCheck, CreditCard, Link2 } from 'lucide-react';
 
 interface BotNumberEditorProps {
     initialNumber: string;
     initialStripeLink: string;
+    initialStripeCancelLink: string;
 }
 
-export default function BotNumberEditor({ initialNumber, initialStripeLink }: BotNumberEditorProps) {
+export default function BotNumberEditor({ initialNumber, initialStripeLink, initialStripeCancelLink }: BotNumberEditorProps) {
     const [botNumber, setBotNumber] = useState(initialNumber);
     const [stripeLink, setStripeLink] = useState(initialStripeLink);
+    const [stripeCancelLink, setStripeCancelLink] = useState(initialStripeCancelLink);
     const [vipPhone, setVipPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +36,17 @@ export default function BotNumberEditor({ initialNumber, initialStripeLink }: Bo
             alert('Link de Stripe actualizado');
         } else {
             alert('Error al actualizar link');
+        }
+        setLoading(false);
+    };
+
+    const handleSaveStripeCancelLink = async () => {
+        setLoading(true);
+        const res = await updateStripeCancelLink(stripeCancelLink);
+        if (res.success) {
+            alert('Link de cancelación actualizado');
+        } else {
+            alert('Error al actualizar link de cancelación');
         }
         setLoading(false);
     };
@@ -96,7 +109,7 @@ export default function BotNumberEditor({ initialNumber, initialStripeLink }: Bo
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
                                 <CreditCard className="w-3 h-3" />
-                                Link de Pago Stripe
+                                Link de Pago Stripe (Checkout)
                             </label>
                             <div className="flex gap-2">
                                 <input
@@ -115,6 +128,31 @@ export default function BotNumberEditor({ initialNumber, initialStripeLink }: Bo
                                 </button>
                             </div>
                             <p className="text-[10px] text-slate-400">El link oficial que generas en Stripe para tus suscripciones.</p>
+                        </div>
+
+                        {/* Stripe Cancel Link */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                                <Link2 className="w-3 h-3" />
+                                Link de Cancelación (Portal Stripe)
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={stripeCancelLink}
+                                    onChange={(e) => setStripeCancelLink(e.target.value)}
+                                    placeholder="https://billing.stripe.com/p/login/..."
+                                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                />
+                                <button
+                                    onClick={handleSaveStripeCancelLink}
+                                    disabled={loading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400">El enlace directo al Portal de Clientes de Stripe.</p>
                         </div>
                     </div>
 

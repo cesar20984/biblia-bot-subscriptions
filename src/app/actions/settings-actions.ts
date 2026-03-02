@@ -15,7 +15,7 @@ export async function updateBotNumber(number: string) {
             });
         } else {
             await prisma.botSettings.create({
-                data: { id: 1, botNumber: number, stripePaymentLink: '' }
+                data: { id: 1, botNumber: number, stripePaymentLink: '', stripeCancelLink: '' }
             });
         }
         revalidatePath('/dashboard');
@@ -37,13 +37,35 @@ export async function updateStripeLink(link: string) {
             });
         } else {
             await prisma.botSettings.create({
-                data: { id: 1, botNumber: '', stripePaymentLink: link }
+                data: { id: 1, botNumber: '', stripePaymentLink: link, stripeCancelLink: '' }
             });
         }
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
         console.error('Error updating stripe link:', error);
+        return { success: false };
+    }
+}
+
+export async function updateStripeCancelLink(link: string) {
+    try {
+        console.log('Updating stripe cancel link to:', link);
+        const exists = await prisma.botSettings.findUnique({ where: { id: 1 } });
+        if (exists) {
+            await prisma.botSettings.update({
+                where: { id: 1 },
+                data: { stripeCancelLink: link }
+            });
+        } else {
+            await prisma.botSettings.create({
+                data: { id: 1, botNumber: '', stripePaymentLink: '', stripeCancelLink: link }
+            });
+        }
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating stripe cancel link:', error);
         return { success: false };
     }
 }
@@ -55,11 +77,12 @@ export async function getBotSettings() {
         });
         return {
             botNumber: settings?.botNumber || '',
-            stripePaymentLink: settings?.stripePaymentLink || ''
+            stripePaymentLink: settings?.stripePaymentLink || '',
+            stripeCancelLink: settings?.stripeCancelLink || ''
         };
     } catch (error) {
         console.error('Error fetching bot settings:', error);
-        return { botNumber: '', stripePaymentLink: '' };
+        return { botNumber: '', stripePaymentLink: '', stripeCancelLink: '' };
     }
 }
 
