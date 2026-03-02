@@ -41,8 +41,8 @@ export async function POST(req: Request) {
                 const subscription = await stripe.subscriptions.retrieve(subscriptionId);
                 const customerId = session.customer as string;
 
-                // Prioritize phone from customer_details, then metadata
-                let rawPhone = session.customer_details?.phone || session.metadata?.phone;
+                // Priorizar client_reference_id (enviado desde n8n), luego phone de Stripe, luego metadata
+                let rawPhone = session.client_reference_id || session.customer_details?.phone || session.metadata?.phone;
 
                 if (!rawPhone) {
                     console.error('❌ CRITICAL: No phone number found for session. Ensure "Phone number collection" is enabled in Stripe Payment Link.');
