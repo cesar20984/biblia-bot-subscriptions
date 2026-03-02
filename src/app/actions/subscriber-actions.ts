@@ -60,3 +60,20 @@ export async function updateSubscriberPhone(id: string, newPhone: string) {
         return { success: false, error: 'El número ya existe o es inválido' };
     }
 }
+
+export async function updateSubscriberExpiration(id: string, date: string) {
+    try {
+        await prisma.subscriber.update({
+            where: { id },
+            data: {
+                currentPeriodEnd: new Date(date),
+                status: 'active' // Aseguramos que si le cambiamos la fecha, esté activo
+            },
+        });
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating expiration:', error);
+        return { success: false };
+    }
+}
