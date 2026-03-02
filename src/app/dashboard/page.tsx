@@ -12,8 +12,13 @@ import {
     MessageSquare,
     Star,
     Edit2,
-    ShieldCheck
+    ShieldCheck,
+    Filter,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
+import DashboardFilters from '@/components/DashboardFilters';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +51,16 @@ async function getMessageLogs() {
     });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ search?: string; status?: string; sort?: string }>;
+}) {
+    const params = await searchParams;
+    const search = params.search || '';
+    const statusFilter = params.status || 'all';
+    const sort = params.sort || '';
+
     const stats = await getStats();
     let subscribers = await getSubscribers();
     const todayLogs = await getMessageLogs();
@@ -77,20 +91,35 @@ export default async function DashboardPage() {
         };
     });
 
-    // Ordenar: VIP Manual -> Premium Stripe -> El resto por fecha
-    fullList.sort((a: any, b: any) => {
-        const aIsManual = a.status === 'active' && !a.stripeSubscriptionId;
-        const bIsManual = b.status === 'active' && !b.stripeSubscriptionId;
-        const aIsPremium = a.status === 'active' && !!a.stripeSubscriptionId;
-        const bIsPremium = b.status === 'active' && !!b.stripeSubscriptionId;
+    // Filtrar por búsqueda y estado
+    if (search) {
+        fullList = fullList.filter(item => item.phone.includes(search));
+    }
+    if (statusFilter !== 'all') {
+        fullList = fullList.filter(item => item.status === statusFilter);
+    }
 
-        if (aIsManual && !bIsManual) return -1;
-        if (!aIsManual && bIsManual) return 1;
-        if (aIsPremium && !bIsPremium) return -1;
-        if (!aIsPremium && bIsPremium) return 1;
+    // Ordenar
+    if (sort === 'messages:desc') {
+        fullList.sort((a, b) => b.messagesToday - a.messagesToday);
+    } else if (sort === 'messages:asc') {
+        fullList.sort((a, b) => a.messagesToday - b.messagesToday);
+    } else {
+        // Ordenar por defecto: VIP Manual -> Premium Stripe -> El resto por fecha
+        fullList.sort((a, b) => {
+            const aIsManual = a.status === 'active' && !a.stripeSubscriptionId;
+            const bIsManual = b.status === 'active' && !b.stripeSubscriptionId;
+            const aIsPremium = a.status === 'active' && !!a.stripeSubscriptionId;
+            const bIsPremium = b.status === 'active' && !!b.stripeSubscriptionId;
 
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+            if (aIsManual && !bIsManual) return -1;
+            if (!aIsManual && bIsManual) return 1;
+            if (aIsPremium && !bIsPremium) return -1;
+            if (!aIsPremium && bIsPremium) return 1;
+
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 p-8">
@@ -137,100 +166,102 @@ export default async function DashboardPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Lista de Usuarios (Main Table) */}
-                    <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="text-xl font-semibold text-slate-800">Lista de Usuarios</h2>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por teléfono..."
-                                    className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                />
+                    <div className="lg:col-span-2 space-y-4">
+                        <Suspense fallback={<div className="h-10 bg-slate-100 animate-pulse rounded-lg" />}>
+                            <DashboardFilters />
+                        </Suspense>
+
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h2 className="text-xl font-semibold text-slate-800">Lista de Usuarios</h2>
+                                <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{fullList.length} registros</span>
                             </div>
-                        </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase">
-                                        <th className="px-6 py-4 font-medium">Teléfono</th>
-                                        <th className="px-6 py-4 font-medium">Estado</th>
-                                        <th className="px-6 py-4 font-medium">Mensajes Hoy</th>
-                                        <th className="px-6 py-4 font-medium text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {fullList.map((sub: any) => {
-                                        const isManualVip = sub.status === 'active' && !sub.stripeSubscriptionId;
-                                        const isStripePremium = sub.status === 'active' && sub.stripeSubscriptionId;
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-slate-50 text-slate-500 text-sm uppercase">
+                                            <th className="px-6 py-4 font-medium">Teléfono</th>
+                                            <th className="px-6 py-4 font-medium">Estado</th>
+                                            <th className="px-6 py-4 font-medium">Mensajes Hoy</th>
+                                            <th className="px-6 py-4 font-medium text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {fullList.map((sub: any) => {
+                                            const isManualVip = sub.status === 'active' && !sub.stripeSubscriptionId;
+                                            const isStripePremium = sub.status === 'active' && sub.stripeSubscriptionId;
 
-                                        return (
-                                            <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${isManualVip ? 'bg-amber-50/30' : ''} ${isStripePremium ? 'bg-blue-50/30' : ''}`}>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-medium text-slate-900">{sub.phone}</span>
-                                                        {isManualVip && (
-                                                            <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase" title="Añadido manualmente">
-                                                                <Star className="w-2.5 h-2.5 fill-amber-500" />
-                                                                VIP
+                                            return (
+                                                <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${isManualVip ? 'bg-amber-50/30' : ''} ${isStripePremium ? 'bg-blue-50/30' : ''}`}>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="font-medium text-slate-900">{sub.phone}</span>
+                                                            {isManualVip && (
+                                                                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase" title="Añadido manualmente">
+                                                                    <Star className="w-2.5 h-2.5 fill-amber-500" />
+                                                                    VIP
+                                                                </span>
+                                                            )}
+                                                            {isStripePremium && (
+                                                                <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase" title="Suscripción vía Stripe">
+                                                                    <UserCheck className="w-2.5 h-2.5" />
+                                                                    Premium
+                                                                </span>
+                                                            )}
+                                                            {sub.isNew && (
+                                                                <span className="flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-200 uppercase" title="Usuario nuevo (aún no suscrito)">
+                                                                    Nuevo
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <StatusBadge status={sub.status} />
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-sm font-bold ${sub.messagesToday > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                                                                {sub.messagesToday}
                                                             </span>
-                                                        )}
-                                                        {isStripePremium && (
-                                                            <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase" title="Suscripción vía Stripe">
-                                                                <UserCheck className="w-2.5 h-2.5" />
-                                                                Premium
-                                                            </span>
-                                                        )}
-                                                        {sub.isNew && (
-                                                            <span className="flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-200 uppercase" title="Usuario nuevo (aún no suscrito)">
-                                                                Nuevo
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <StatusBadge status={sub.status} />
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-sm font-bold ${sub.messagesToday > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
-                                                            {sub.messagesToday}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">mensajes</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <SubscriberActions subscriber={sub} />
-                                                        <div className="w-px h-4 bg-slate-100 mx-1" />
-                                                        <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
-                                                    </div>
+                                                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">mensajes</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <SubscriberActions subscriber={sub} />
+                                                            <div className="w-px h-4 bg-slate-100 mx-1" />
+                                                            <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {fullList.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                                                    No se encontraron usuarios.
                                                 </td>
                                             </tr>
-                                        );
-                                    })}
-                                    {subscribers.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                                                No hay suscriptores aún.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
                     {/* Conteo de Mensajes (Right sidebar) */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
                         <div className="p-6 border-b border-slate-100">
-                            <h2 className="text-xl font-semibold text-slate-800">Mensajes de Hoy</h2>
-                            <p className="text-sm text-slate-500">Usuarios en modo gratuito</p>
+                            <div className="flex items-center gap-2 mb-1">
+                                <MessageSquare className="w-5 h-5 text-slate-400" />
+                                <h2 className="text-xl font-semibold text-slate-800">Actividad Hoy</h2>
+                            </div>
+                            <p className="text-sm text-slate-500">Usuarios con mensajes enviados</p>
                         </div>
                         <div className="p-4">
                             <div className="space-y-4">
-                                {todayLogs.map((log: any) => (
+                                {todayLogs.map(log => (
                                     <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100">
                                         <div>
                                             <p className="text-sm font-semibold text-slate-900">{log.phone}</p>
