@@ -1,13 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import ResetCountButton from '@/components/ResetCountButton';
+import BotNumberEditor from '@/components/BotNumberEditor';
+import { getBotNumber } from '@/app/actions/settings-actions';
 import {
     Users,
     UserCheck,
     UserX,
-    AlertCircle,
     Search,
     MessageSquare,
-    RotateCcw
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +39,7 @@ export default async function DashboardPage() {
     const stats = await getStats();
     const subscribers = await getSubscribers();
     const todayLogs = await getMessageLogs();
+    const botNumber = await getBotNumber();
 
     return (
         <div className="min-h-screen bg-slate-50 p-8">
@@ -77,6 +78,10 @@ export default async function DashboardPage() {
                         icon={<MessageSquare className="text-amber-600" />}
                         bg="bg-amber-50"
                     />
+                </div>
+
+                <div className="mb-8">
+                    <BotNumberEditor initialNumber={botNumber} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

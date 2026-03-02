@@ -1,7 +1,15 @@
 import Link from 'next/link';
 import { CheckCircle2, MessageCircle } from 'lucide-react';
+import { getBotNumber } from '@/app/actions/settings-actions';
 
-export default function SuccessPage() {
+export default async function SuccessPage() {
+    const botNumber = await getBotNumber();
+
+    // Si no hay número configurado, usamos uno por defecto o una URL genérica de WA
+    const whatsappUrl = botNumber
+        ? `https://wa.me/${botNumber.replace(/[^0-9]/g, '')}`
+        : 'https://wa.me/';
+
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-100">
@@ -26,7 +34,7 @@ export default function SuccessPage() {
                 </div>
 
                 <a
-                    href="https://wa.me/TU_NUMERO_DE_BOT" // Reemplazar con el número real del bot o dejar que el usuario lo edite
+                    href={whatsappUrl}
                     className="block w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3"
                 >
                     <MessageCircle className="w-5 h-5" />
@@ -34,7 +42,7 @@ export default function SuccessPage() {
                 </a>
 
                 <div className="mt-8 text-slate-400 text-xs text-center">
-                    ¿Tienes problemas? Contáctanos a tu-email@ejemplo.com
+                    ¿Te gusta el bot? ¡Compártelo con tus hermanos!
                 </div>
             </div>
         </div>
