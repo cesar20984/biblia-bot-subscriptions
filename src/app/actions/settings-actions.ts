@@ -30,3 +30,28 @@ export async function getBotNumber() {
         return '';
     }
 }
+
+export async function addManualVip(phone: string) {
+    try {
+        const cleanPhone = phone.replace('+', '');
+        await prisma.subscriber.upsert({
+            where: { phone: cleanPhone },
+            update: {
+                status: 'active',
+                // Seteamos una fecha muy lejana para que siempre sea VIP
+                currentPeriodEnd: new Date('2099-12-31'),
+            },
+            create: {
+                phone: cleanPhone,
+                status: 'active',
+                currentPeriodEnd: new Date('2099-12-31'),
+            },
+        });
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error adding manual VIP:', error);
+        return { success: false };
+    }
+}
+
