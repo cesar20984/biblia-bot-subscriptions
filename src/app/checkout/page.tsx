@@ -53,8 +53,8 @@ export default async function CheckoutPage({
                 </div>
 
                 <div className="mt-8 text-center">
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-4">
-                        Confirmación de <span className="text-blue-600">Activación</span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4 leading-tight">
+                        Este es el número que <span className="text-blue-600">se va a activar</span>
                     </h1>
 
                     <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 mb-8 mt-6">
