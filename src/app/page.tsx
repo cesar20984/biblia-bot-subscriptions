@@ -19,6 +19,7 @@ export default function Home() {
           >
             Ir al Dashboard
           </Link>
+          {/* Repository set to Public for Vercel access */}
           <p className="text-sm text-slate-400">
             Asegúrate de configurar tus variables de entorno antes de empezar.
           </p>
