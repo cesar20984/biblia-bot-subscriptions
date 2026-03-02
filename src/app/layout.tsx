@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Biblia Bot - Dashboard de Suscripciones",
   description: "Sistema de gestión de cobros para el bot de la Biblia",
   icons: {
-    icon: '/icon.png',
+    icon: '/icon.webp',
   },
 };
 
