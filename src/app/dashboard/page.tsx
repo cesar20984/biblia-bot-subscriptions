@@ -32,7 +32,10 @@ export default async function DashboardPage() {
         <div className="min-h-screen bg-slate-50 p-8">
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900">Dashboard de Suscriptores</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+                        Dashboard de Suscriptores
+                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Beta</span>
+                    </h1>
                     <p className="text-slate-500">Gestión de suscripciones para biblia-bot</p>
                 </header>
 
