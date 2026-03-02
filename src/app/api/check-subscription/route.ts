@@ -32,17 +32,7 @@ export async function GET(request: Request) {
         // El usuario es VIP si tiene estado activo o si canceló pero el periodo no ha vencido
         const isVip = subscriber?.status === 'active' || (subscriber?.status === 'canceled' && isPeriodValid);
 
-        if (isVip) {
-            return NextResponse.json({
-                active: true,
-                status: subscriber?.status,
-                isVip: true,
-                message: 'Usuario Premium activo'
-            });
-        }
-
-        // 2. Si NO es VIP, gestionamos el conteo de mensajes gratuitos
-        // Intentamos incrementar o crear el registro para hoy
+        // REGISTRO DE MENSAJE (Para todos: Free y Premium)
         const log = await prisma.messageLog.upsert({
             where: {
                 phone_date: {
@@ -60,6 +50,18 @@ export async function GET(request: Request) {
             }
         });
 
+        // 2. Si es VIP, tiene mensajes ilimitados
+        if (isVip) {
+            return NextResponse.json({
+                active: true,
+                status: subscriber?.status,
+                isVip: true,
+                countToday: log.count,
+                message: 'Usuario Premium activo'
+            });
+        }
+
+        // 3. Si NO es VIP, gestionamos el límite de 2 mensajes gratuitos
         const freeMessagesRemaining = Math.max(0, 2 - log.count);
         const canSend = log.count <= 2;
 
@@ -67,6 +69,7 @@ export async function GET(request: Request) {
             active: canSend,
             isVip: false,
             remaining: freeMessagesRemaining,
+            countToday: log.count,
             message: canSend ? `Mensaje gratuito ${log.count}/2` : 'Límite diario alcanzado'
         });
 

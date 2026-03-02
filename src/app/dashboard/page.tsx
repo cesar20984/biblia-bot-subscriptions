@@ -21,9 +21,15 @@ async function getStats() {
     const total = await prisma.subscriber.count();
     const active = await prisma.subscriber.count({ where: { status: 'active' } });
     const canceled = await prisma.subscriber.count({ where: { status: 'canceled' } });
-    const pastDue = await prisma.subscriber.count({ where: { status: 'past_due' } });
 
-    return { total, active, canceled, pastDue };
+    const today = new Date().toISOString().split('T')[0];
+    const messagesTodayResult = await prisma.messageLog.aggregate({
+        where: { date: today },
+        _sum: { count: true }
+    });
+    const messagesToday = messagesTodayResult._sum.count || 0;
+
+    return { total, active, canceled, messagesToday };
 }
 
 async function getSubscribers() {
@@ -46,8 +52,33 @@ export default async function DashboardPage() {
     const todayLogs = await getMessageLogs();
     const { botNumber, stripePaymentLink } = await getBotSettings();
 
+    // Mapear logs para búsqueda rápida
+    const logsMap = new Map(todayLogs.map(log => [log.phone, log.count]));
+
+    // Obtener todos los números de teléfono únicos (Suscriptores + Gente que escribió hoy)
+    const allPhones = Array.from(new Set([
+        ...subscribers.map(s => s.phone),
+        ...todayLogs.map(l => l.phone)
+    ]));
+
+    // Crear lista unificada
+    let fullList = allPhones.map(phone => {
+        const sub = subscribers.find(s => s.phone === phone);
+        return {
+            id: sub?.id || `temp-${phone}`,
+            phone,
+            status: sub?.status || 'inactive',
+            stripeSubscriptionId: sub?.stripeSubscriptionId,
+            stripeCustomerId: sub?.stripeCustomerId,
+            currentPeriodEnd: sub?.currentPeriodEnd,
+            createdAt: sub?.createdAt || new Date(),
+            messagesToday: logsMap.get(phone) || 0,
+            isNew: !sub
+        };
+    });
+
     // Ordenar: VIP Manual -> Premium Stripe -> El resto por fecha
-    subscribers = [...subscribers].sort((a: any, b: any) => {
+    fullList.sort((a: any, b: any) => {
         const aIsManual = a.status === 'active' && !a.stripeSubscriptionId;
         const bIsManual = b.status === 'active' && !b.stripeSubscriptionId;
         const aIsPremium = a.status === 'active' && !!a.stripeSubscriptionId;
@@ -93,8 +124,8 @@ export default async function DashboardPage() {
                         bg="bg-rose-50"
                     />
                     <StatCard
-                        title="Dudas Hoy (Free)"
-                        value={todayLogs.length}
+                        title="Mensajes Hoy"
+                        value={stats.messagesToday}
                         icon={<MessageSquare className="text-amber-600" />}
                         bg="bg-amber-50"
                     />
@@ -125,12 +156,12 @@ export default async function DashboardPage() {
                                     <tr className="bg-slate-50 text-slate-500 text-sm uppercase">
                                         <th className="px-6 py-4 font-medium">Teléfono</th>
                                         <th className="px-6 py-4 font-medium">Estado</th>
-                                        <th className="px-6 py-4 font-medium">Próximo Cobro</th>
+                                        <th className="px-6 py-4 font-medium">Mensajes Hoy</th>
                                         <th className="px-6 py-4 font-medium text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {subscribers.map((sub: any) => {
+                                    {fullList.map((sub: any) => {
                                         const isManualVip = sub.status === 'active' && !sub.stripeSubscriptionId;
                                         const isStripePremium = sub.status === 'active' && sub.stripeSubscriptionId;
 
@@ -151,13 +182,23 @@ export default async function DashboardPage() {
                                                                 Premium
                                                             </span>
                                                         )}
+                                                        {sub.isNew && (
+                                                            <span className="flex items-center gap-1 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-200 uppercase" title="Usuario nuevo (aún no suscrito)">
+                                                                Nuevo
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <StatusBadge status={sub.status} />
                                                 </td>
-                                                <td className="px-6 py-4 text-slate-600">
-                                                    {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-sm font-bold ${sub.messagesToday > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                                                            {sub.messagesToday}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">mensajes</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-end gap-1">
