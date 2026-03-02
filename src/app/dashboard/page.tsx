@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import ResetCountButton from '@/components/ResetCountButton';
 import BotNumberEditor from '@/components/BotNumberEditor';
+import DeleteSubscriberButton from '@/components/DeleteSubscriberButton';
 import { getBotNumber } from '@/app/actions/settings-actions';
 import {
     Users,
@@ -8,6 +9,7 @@ import {
     UserX,
     Search,
     MessageSquare,
+    Star
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -37,9 +39,16 @@ async function getMessageLogs() {
 
 export default async function DashboardPage() {
     const stats = await getStats();
-    const subscribers = await getSubscribers();
+    let subscribers = await getSubscribers();
     const todayLogs = await getMessageLogs();
     const botNumber = await getBotNumber();
+
+    // Ordenar: activos (VIP) primero, luego el resto por fecha de creación
+    subscribers = [...subscribers].sort((a: any, b: any) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return (
         <div className="min-h-screen bg-slate-50 p-8">
@@ -106,21 +115,31 @@ export default async function DashboardPage() {
                                         <th className="px-6 py-4 font-medium">Teléfono</th>
                                         <th className="px-6 py-4 font-medium">Estado</th>
                                         <th className="px-6 py-4 font-medium">Próximo Cobro</th>
-                                        <th className="px-6 py-4 font-medium text-right">Creado</th>
+                                        <th className="px-6 py-4 font-medium text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {subscribers.map((sub: any) => (
-                                        <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-slate-900">{sub.phone}</td>
+                                        <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${sub.status === 'active' ? 'bg-blue-50/30' : ''}`}>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-medium text-slate-900">{sub.phone}</span>
+                                                    {sub.status === 'active' && (
+                                                        <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200 uppercase">
+                                                            <Star className="w-2.5 h-2.5 fill-amber-500" />
+                                                            VIP
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <StatusBadge status={sub.status} />
                                             </td>
                                             <td className="px-6 py-4 text-slate-600">
                                                 {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
                                             </td>
-                                            <td className="px-6 py-4 text-slate-500 text-sm text-right">
-                                                {new Date(sub.createdAt).toLocaleDateString()}
+                                            <td className="px-6 py-4 text-right">
+                                                <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
                                             </td>
                                         </tr>
                                     ))}
