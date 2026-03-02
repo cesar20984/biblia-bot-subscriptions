@@ -16,34 +16,59 @@ export async function GET(request: Request) {
     }
 
     try {
-        // Buscamos al suscriptor por teléfono
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        // 1. Buscamos al suscriptor por teléfono
         const subscriber = await prisma.subscriber.findUnique({
             where: { phone },
         });
 
-        if (!subscriber) {
+        const isPeriodValid = subscriber?.currentPeriodEnd ? new Date(subscriber.currentPeriodEnd) > now : false;
+
+        // El usuario es VIP si tiene estado activo o si canceló pero el periodo no ha vencido
+        const isVip = subscriber?.status === 'active' || (subscriber?.status === 'canceled' && isPeriodValid);
+
+        if (isVip) {
             return NextResponse.json({
-                active: false,
-                status: 'not_found',
-                message: 'Usuario no registrado'
+                active: true,
+                status: subscriber?.status,
+                isVip: true,
+                message: 'Usuario Premium activo'
             });
         }
 
-        const now = new Date();
-        const isPeriodValid = subscriber.currentPeriodEnd ? new Date(subscriber.currentPeriodEnd) > now : false;
+        // 2. Si NO es VIP, gestionamos el conteo de mensajes gratuitos
+        // Intentamos incrementar o crear el registro para hoy
+        const log = await prisma.messageLog.upsert({
+            where: {
+                phone_date: {
+                    phone,
+                    date: todayStr
+                }
+            },
+            create: {
+                phone,
+                date: todayStr,
+                count: 1
+            },
+            update: {
+                count: { increment: 1 }
+            }
+        });
 
-        // Lógica: Está activo si el estado es 'active' O si aún no ha vencido su periodo pagado
-        const isActive = subscriber.status === 'active' || (subscriber.status !== 'canceled' && isPeriodValid);
+        const freeMessagesRemaining = Math.max(0, 2 - log.count);
+        const canSend = log.count <= 2;
 
         return NextResponse.json({
-            active: isActive,
-            status: subscriber.status,
-            currentPeriodEnd: subscriber.currentPeriodEnd,
-            phone: subscriber.phone
+            active: canSend,
+            isVip: false,
+            remaining: freeMessagesRemaining,
+            message: canSend ? `Mensaje gratuito ${log.count}/2` : 'Límite diario alcanzado'
         });
 
     } catch (error) {
-        console.error('Error al verificar suscripción:', error);
+        console.error('Error al procesar solicitud:', error);
         return NextResponse.json({ error: 'Error interno' }, { status: 500 });
     }
 }
