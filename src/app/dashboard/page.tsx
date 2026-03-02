@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import ResetCountButton from '@/components/ResetCountButton';
 import BotNumberEditor from '@/components/BotNumberEditor';
 import DeleteSubscriberButton from '@/components/DeleteSubscriberButton';
+import SubscriberActions from '@/components/SubscriberActions';
 import { getBotNumber } from '@/app/actions/settings-actions';
 import {
     Users,
@@ -9,7 +10,8 @@ import {
     UserX,
     Search,
     MessageSquare,
-    Star
+    Star,
+    Edit2
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -156,8 +158,12 @@ export default async function DashboardPage() {
                                                 <td className="px-6 py-4 text-slate-600">
                                                     {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <SubscriberActions subscriber={sub} />
+                                                        <div className="w-px h-4 bg-slate-100 mx-1" />
+                                                        <DeleteSubscriberButton id={sub.id} phone={sub.phone} />
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

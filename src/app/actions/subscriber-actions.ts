@@ -15,3 +15,48 @@ export async function deleteSubscriber(id: string) {
         return { success: false, error: 'No se pudo eliminar el suscriptor' };
     }
 }
+
+export async function toggleVipStatus(id: string, isVip: boolean) {
+    try {
+        if (isVip) {
+            // Quitar VIP: volver a inactivo (o dejarlo como está si tiene Stripe, pero el usuario pidió quitar la insignia)
+            await prisma.subscriber.update({
+                where: { id },
+                data: {
+                    status: 'inactive',
+                    currentPeriodEnd: null,
+                },
+            });
+        } else {
+            // Hacer VIP: status activo y fecha lejana
+            await prisma.subscriber.update({
+                where: { id },
+                data: {
+                    status: 'active',
+                    currentPeriodEnd: new Date('2099-12-31'),
+                    stripeSubscriptionId: null, // Si era de Stripe, al hacerlo VIP manual rompemos el vínculo para que sea puramente manual
+                },
+            });
+        }
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error toggling VIP status:', error);
+        return { success: false };
+    }
+}
+
+export async function updateSubscriberPhone(id: string, newPhone: string) {
+    try {
+        const cleanPhone = newPhone.replace('+', '');
+        await prisma.subscriber.update({
+            where: { id },
+            data: { phone: cleanPhone },
+        });
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating phone:', error);
+        return { success: false, error: 'El número ya existe o es inválido' };
+    }
+}
