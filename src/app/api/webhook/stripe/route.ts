@@ -4,11 +4,17 @@ import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
 export async function POST(req: Request) {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+        console.error('❌ CRITICAL: STRIPE_WEBHOOK_SECRET is not defined in environment variables.');
+        return NextResponse.json({ error: 'Configuration Error' }, { status: 500 });
+    }
+
     const body = await req.text();
-    const signature = (await headers()).get('Stripe-Signature') as string;
+    const headersList = await headers();
+    const signature = headersList.get('Stripe-Signature') as string;
 
     let event: Stripe.Event;
 
