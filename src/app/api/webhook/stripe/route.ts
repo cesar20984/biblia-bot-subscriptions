@@ -90,7 +90,7 @@ export async function POST(req: Request) {
             case 'customer.subscription.updated': {
                 const subscription = event.data.object as any;
                 console.log(`Updating subscription for: ${subscription.id}`);
-                await prisma.subscriber.update({
+                await prisma.subscriber.updateMany({
                     where: { stripeSubscriptionId: subscription.id },
                     data: {
                         status: subscription.status,
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
             case 'customer.subscription.deleted': {
                 const subscription = event.data.object as any;
                 console.log(`Canceling subscription: ${subscription.id}`);
-                await prisma.subscriber.update({
+                await prisma.subscriber.updateMany({
                     where: { stripeSubscriptionId: subscription.id },
                     data: {
                         status: 'canceled',
